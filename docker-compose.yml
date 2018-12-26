@@ -1,0 +1,64 @@
+version: '3'
+services:
+  nexus:
+    container_name: nexus
+    image: sonatype/nexus3:latest
+    ports:
+      - "8081:8081"
+      - "8123:8123"
+    volumes:
+      - ./data/nexus-data:/nexus-data
+
+  sonar-db:
+    #restart: always
+    container_name: sonar-db
+    image: postgres
+    ports:
+       - "5432:5432"
+    environment:
+      - POSTGRES_DB=sonar
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+     #- TZ=GMT-3
+    volumes:
+      - ./data/postgres:/data/postgres
+
+  sonar:
+    container_name: sonar
+    image: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonar
+    links:
+     - sonar-db
+
+  #selhub:
+    #container_name: selhub
+    #image: selenium/hub
+
+  #nodechrome:
+    #image: selenium/node-chrome-debug
+    #links:
+      #- selhub:hub
+
+  jenkins-data:
+    container_name: jenkins-data
+    image: jenkins
+    command: echo "data-only container for Jenkins"
+
+  jenkins:
+    container_name: jenkins
+    image: jenkins
+    ports:
+        - "8080:8080"
+    links:
+      - nexus:longscm01e.gta.travel.lcl
+      - sonar
+      - sonar-db:sonardb
+      #- selhub
+    volumes:
+      - jenkins-data
+    command: bash -c "docker exec -it $(docker ps -q -f "name=jenkins") \ cat /var/jenkins_home/secrets/initialAdminPassword"
+      #- ./jenkins-admin-init.sh
+  #TODO: add jenkins agents 
